@@ -11,6 +11,8 @@ const corsOptions = {
   credentials: true,
 };
 app.use(cors(corsOptions));
+// Configuración de apicache
+const cache = apicache.middleware;
 
 // Endpoint para obtener los partidos
 app.get('/api/matches', async (req, res) => {
@@ -241,7 +243,134 @@ app.get('/api/matches/live', async (req, res) => {
 });
 
 
+app.get('/api/matches/tabla', cache('10 minutes'), async (req, res) => {
+  const url = 'https://livescore.soccersapi.com/components/league/standings?league_id=637&season_id=14341&stage_id=1&round_id=182348&group=round&ltype=topscorers&news_type=league&id=637&is_cup=0&nk=laliga';
+
+  try {
+    const { data } = await axios.get(url);
+    const $ = cheerio.load(data);
+
+    // Procesar y extraer datos de cada equipo
+    const teamsData = [];
+    $('a').each((index, element) => {
+      if (index < 23) { // Limitar a los primeros 20 equipos
+        const position = $(element).find('.st.pos > span').text().trim() || 'Unknown';
+        const name = $(element).find('.st.name').text().trim() || 'Unknown';
+        const imgUrl = $(element).find('.st.name img').attr('src') || '';
+        const teamUrl = $(element).attr('href') || '';
+        const gamesPlayed = $(element).find('.st.int.gp').text().trim() || '0';
+        const won = $(element).find('.st.int.won').text().trim() || '0';
+        const draw = $(element).find('.st.int.draw').text().trim() || '0';
+        const lost = $(element).find('.st.int.lost').text().trim() || '0';
+        const goals = $(element).find('.st.int.goals').text().trim() || '0:0';
+        const goalDifference = $(element).find('.st.int.gdiff').text().trim() || '0';
+        const points = $(element).find('.st.int.points').text().trim() || '0';
+
+        teamsData.push({
+          position,
+          name,
+          imgUrl,
+          teamUrl,
+          gamesPlayed,
+          won,
+          draw,
+          lost,
+          goals,
+          goalDifference,
+          points
+        });
+      }
+    });
+
+    const filteredTeamsData = teamsData.slice(3);
+
+    // Enviar los datos procesados
+    res.json(filteredTeamsData);
+  } catch (error) {
+    console.error('Error al obtener los datos:', error);
+    res.status(500).json({ error: 'Error al obtener la tabla de posiciones' });
+  }
+});
+
+app.get('/api/matches/status/:id', async (req, res) => {
+  const { id } = req.params;
+  const url = `https://livescore.soccersapi.com/components/match/stats?id=${id}`;
+
+  try {
+    const { data } = await axios.get(url);
+    const $ = cheerio.load(data);
+    const matchStats = {
+      possession: {},
+      ataques: {},
+      ataques_peligrosos: {},
+      Ball_Safe: {},
+      disparos: {},
+      tiros_a_porteria: {},
+      tiros_a_fuera: {},
+      tiros_de_esquina: {},
+    };
+
+    // Extraer los valores utilizando los selectores de Cheerio
+    matchStats.possession.home = parseInt($(".stats_type .home .count").eq(0).text().trim()) || 0;
+    matchStats.possession.away = parseInt($(".stats_type .away .count").eq(0).text().trim()) || 0;
+    matchStats.possession.stats_name = "Posesión"
+    matchStats.ataques.home = parseInt($(".stats_type .home .count").eq(1).text().trim()) || 0;
+    matchStats.ataques.away = parseInt($(".stats_type .away .count").eq(1).text().trim()) || 0;
+    matchStats.ataques.name_type = "Goles";
+    matchStats.ataques_peligrosos.home = parseInt($(".stats_type .home .count").eq(2).text().trim()) || 0;
+    matchStats.ataques_peligrosos.away = parseInt($(".stats_type .away .count").eq(2).text().trim()) || 0;
+    matchStats.ataques_peligrosos.name_type = "Ataques"
+    matchStats.Ball_Safe.name_type = "Ataques peligrosos"
+    matchStats.Ball_Safe.home = parseInt($(".stats_type .home .count").eq(3).text().trim()) || 0;
+    matchStats.Ball_Safe.away = parseInt($(".stats_type .away .count").eq(3).text().trim()) || 0;
+    matchStats.disparos.name_type = "Disparos"
+    matchStats.disparos.home = parseInt($(".stats_type .home .count").eq(4).text().trim()) || 0;
+    matchStats.disparos.away = parseInt($(".stats_type .away .count").eq(4).text().trim()) || 0;
+    matchStats.tiros_a_porteria.name_type = "Tiros a Porteria"
+    matchStats.tiros_a_porteria.home = parseInt($(".stats_type .home .count").eq(5).text().trim()) || 0;
+    matchStats.tiros_a_porteria.away = parseInt($(".stats_type .away .count").eq(5).text().trim()) || 0;
+    matchStats.tiros_a_fuera.name_type = "Tiros fuera de portería"
+    matchStats.tiros_a_fuera.home = parseInt($(".stats_type .home .count").eq(6).text().trim()) || 0;
+    matchStats.tiros_a_fuera.away = parseInt($(".stats_type .away .count").eq(6).text().trim()) || 0;
+    matchStats.tiros_de_esquina.name_type = "Tiros de Esquina"
+    matchStats.tiros_de_esquina.home = parseInt($(".stats_type .home .count").eq(7).text().trim()) || 0;
+    matchStats.tiros_de_esquina.away = parseInt($(".stats_type .away .count").eq(7).text().trim()) || 0;
+
+    res.json(matchStats);
+  } catch (error) {
+    console.error('Error al obtener los datos:', error);
+    res.status(500).json({ error: 'Error al obtener las estadísticas del partido' });
+  }
+});
+
+
+app.get('/api/matches/status/partido/:id', async (req, res) => {
+  const { id } = req.params;
+  const url = `https://livescore.soccersapi.com/components/match/info-simple?id=${id}&update=1`;
+
+  try {
+    const { data } = await axios.get(url);
+    const $ = cheerio.load(data);
+    const propiedades = {
+      goles :{},
+      logos : {},
+      equipo : {},
+      tiempo : {}
+    }
+    propiedades.tiempo = parseInt($(".time").text().trim()) || 0;
+    propiedades.goles.home = parseInt($(".score_home").eq(0).text().trim()) || 0;
+    propiedades.goles.away = parseInt($(".score_away").eq(0).text().trim()) || 0;
+    propiedades.logos.home = $('img').eq(0).attr('src');
+    propiedades.logos.away = $('img').eq(1).attr('src');
+    propiedades.equipo.home = $('.home-name').text().trim() || NaN;
+    propiedades.equipo.away = $('.away-name').text().trim() || NaN;
+    res.json(propiedades);
+  } catch (error) {
+    console.error('Error al obtener los datos:', error);
+    res.status(500).json({ error: 'Error al obtener las estadísticas del partido' });
+  }
+});
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Servidor escuchando en http://localhost:${PORT}`);
+  console.log(`Servidor escuchando en el puerto: ${PORT}`);
 });
