@@ -2,7 +2,6 @@ const getExpeditiousCache = require('express-expeditious');
 const express = require('express');
 const axios = require('axios');
 const cheerio = require('cheerio');
-const apicache = require('apicache');
 const cors = require('cors');
 const app = express();
 const PORT = 7823;
@@ -13,13 +12,17 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-// Configuración de apicache
-const cache = apicache.middleware;
 
 const cacheServer = getExpeditiousCache({
   namespace: 'expresscache',
   defaultTtl: '1 minute'
 });
+
+const cacheServerDos = getExpeditiousCache({
+  namespace: 'expresscache',
+  defaultTtl: '10 minute',
+});
+
 // Endpoint para obtener los partidos laliga
 app.get('/api/matches', cacheServer, async (req, res) => {
   const url = 'https://livescore.soccersapi.com/components/league/overview?league_id=637&season_id=14341';
@@ -90,6 +93,11 @@ app.get('/api/matches', cacheServer, async (req, res) => {
     // Combinar los grupos en el orden deseado
     const orderedMatches = [...todayMatches, ...futureMatches, ...pastMatches];
 
+    //encabezados para el cache de la CDN
+    res.set({
+      "Cache-Control": "public, max-age=0, s-maxage=60",
+      "Content-Type": "text/html"
+    });
     // Enviar el array ordenado de objetos
     res.json(orderedMatches);
   } catch (error) {
@@ -97,8 +105,9 @@ app.get('/api/matches', cacheServer, async (req, res) => {
     res.status(500).json({ error: 'Error al obtener los partidos' });
   }
 });
+
 // Endpoint para obtener los partidos concacaf liga de naciones
-app.get('/api/matches/concacaf', cacheServer, async(req, res)=>{
+app.get('/api/matches/concacaf', cacheServer, async (req, res) => {
   const url = 'https://livescore.soccersapi.com/components/league/overview?league_id=339&season_id=14344';
   try {
     const { data } = await axios.get(url);
@@ -166,6 +175,10 @@ app.get('/api/matches/concacaf', cacheServer, async(req, res)=>{
     // Combinar los grupos en el orden deseado
     const orderedMatches = [...todayMatches, ...futureMatches, ...pastMatches];
 
+    res.set({
+      "Cache-Control": "public, max-age=0, s-maxage=60",
+      "Content-Type": "text/html"
+    });
     // Enviar el array ordenado de objetos
     res.json(orderedMatches);
   } catch (error) {
@@ -173,6 +186,7 @@ app.get('/api/matches/concacaf', cacheServer, async(req, res)=>{
     res.status(500).json({ error: 'Error al obtener los partidos' });
   }
 })
+
 // Endpoint para obtener los partidos uefa nations league
 app.get('/api/matches/euro', cacheServer, async (req, res) => {
   const url = 'https://livescore.soccersapi.com/components/league/overview?league_id=366&season_id=14154';
@@ -242,6 +256,11 @@ app.get('/api/matches/euro', cacheServer, async (req, res) => {
     // Combinar los grupos en el orden deseado
     const orderedMatches = [...todayMatches, ...futureMatches, ...pastMatches];
 
+    //encabezados para el cache de la CDN
+    res.set({
+      "Cache-Control": "public, max-age=0, s-maxage=60",
+      "Content-Type": "text/html"
+    });
     // Enviar el array ordenado de objetos
     res.json(orderedMatches);
   } catch (error) {
@@ -249,6 +268,7 @@ app.get('/api/matches/euro', cacheServer, async (req, res) => {
     res.status(500).json({ error: 'Error al obtener los partidos' });
   }
 })
+
 // Endpoint para obtener los partidos conmebol
 app.get('/api/matches/conmebol', cacheServer, async (req, res) => {
   const url = 'https://livescore.soccersapi.com/components/league/overview?league_id=369&season_id=13649';
@@ -318,6 +338,12 @@ app.get('/api/matches/conmebol', cacheServer, async (req, res) => {
     // Combinar los grupos en el orden deseado
     const orderedMatches = [...todayMatches, ...futureMatches, ...pastMatches];
 
+
+    //encabezados para el cache de la CDN
+    res.set({
+      "Cache-Control": "public, max-age=0, s-maxage=60",
+      "Content-Type": "text/html"
+    });
     // Enviar el array ordenado de objetos
     res.json(orderedMatches);
   } catch (error) {
@@ -325,6 +351,7 @@ app.get('/api/matches/conmebol', cacheServer, async (req, res) => {
     res.status(500).json({ error: 'Error al obtener los partidos' });
   }
 })
+
 // Endpoint para obtener los partidos uefa
 app.get('/api/matches/uefa', cacheServer, async (req, res) => {
   const url = 'https://livescore.soccersapi.com/components/league/overview?league_id=539&season_id=14354';
@@ -394,6 +421,11 @@ app.get('/api/matches/uefa', cacheServer, async (req, res) => {
     // Combinar los grupos en el orden deseado
     const orderedMatches = [...todayMatches, ...futureMatches, ...pastMatches];
 
+    //encabezados para el cache de la CDN
+    res.set({
+      "Cache-Control": "public, max-age=0, s-maxage=60",
+      "Content-Type": "text/html"
+    });
     // Enviar el array ordenado de objetos
     res.json(orderedMatches);
   } catch (error) {
@@ -401,6 +433,7 @@ app.get('/api/matches/uefa', cacheServer, async (req, res) => {
     res.status(500).json({ error: 'Error al obtener los partidos' });
   }
 });
+
 // Endpoint para obtener los partidos en vivo
 app.get('/api/matches/live', cacheServer, async (req, res) => {
   const url = 'https://livescore.soccersapi.com/components/fixtures/schedule?d=live';
@@ -468,6 +501,11 @@ app.get('/api/matches/live', cacheServer, async (req, res) => {
     // Combinar los grupos en el orden deseado
     const orderedMatches = [...todayMatches, ...futureMatches, ...pastMatches];
 
+    //encabezados para el cache de la CDN
+    res.set({
+      "Cache-Control": "public, max-age=0, s-maxage=60",
+      "Content-Type": "text/html"
+    });
     // Enviar el array ordenado de objetos
     res.json(orderedMatches);
   } catch (error) {
@@ -475,8 +513,9 @@ app.get('/api/matches/live', cacheServer, async (req, res) => {
     res.status(500).json({ error: 'Error al obtener los partidos' });
   }
 });
+
 // Endpoint para obtener la tabla de posiciones laliga
-app.get('/api/matches/tabla', cache('10 minutes'), async (req, res) => {
+app.get('/api/matches/tabla', cacheServerDos, async (req, res) => {
   const url = 'https://livescore.soccersapi.com/components/league/standings?league_id=637&season_id=14341&stage_id=1&round_id=182348&group=round&ltype=topscorers&news_type=league&id=637&is_cup=0&nk=laliga';
 
   try {
@@ -516,7 +555,11 @@ app.get('/api/matches/tabla', cache('10 minutes'), async (req, res) => {
     });
 
     const filteredTeamsData = teamsData.slice(3);
-
+    //encabezados para el cache de la CDN
+    res.set({
+      "Cache-Control": "public, max-age=0, s-maxage=60, stale-while-revalidate=80",
+      "Content-Type": "text/html"
+    });
     // Enviar los datos procesados
     res.json(filteredTeamsData);
   } catch (error) {
@@ -524,6 +567,7 @@ app.get('/api/matches/tabla', cache('10 minutes'), async (req, res) => {
     res.status(500).json({ error: 'Error al obtener la tabla de posiciones' });
   }
 });
+
 // Endpoint para obtener las estadisticas de cada partido
 app.get('/api/matches/status/:id', cacheServer, async (req, res) => {
   const { id } = req.params;
@@ -569,12 +613,18 @@ app.get('/api/matches/status/:id', cacheServer, async (req, res) => {
     matchStats.tiros_de_esquina.home = parseInt($(".stats_type .home .count").eq(7).text().trim()) || 0;
     matchStats.tiros_de_esquina.away = parseInt($(".stats_type .away .count").eq(7).text().trim()) || 0;
 
+    //encabezados para el cache de la CDN
+    res.set({
+      "Cache-Control": "public, max-age=0, s-maxage=60",
+      "Content-Type": "text/html"
+    });
     res.json(matchStats);
   } catch (error) {
     console.error('Error al obtener los datos:', error);
     res.status(500).json({ error: 'Error al obtener las estadísticas del partido' });
   }
 });
+
 // Endpoint para obtener el marcador de cada partido
 app.get('/api/matches/status/partido/:id', cacheServer, async (req, res) => {
   const { id } = req.params;
@@ -596,6 +646,11 @@ app.get('/api/matches/status/partido/:id', cacheServer, async (req, res) => {
     propiedades.logos.away = $('img').eq(1).attr('src');
     propiedades.equipo.home = $('.home-name').text().trim() || NaN;
     propiedades.equipo.away = $('.away-name').text().trim() || NaN;
+    //encabezados para el cache de la CDN
+    res.set({
+      "Cache-Control": "public, max-age=0, s-maxage=60",
+      "Content-Type": "text/html"
+    });
     res.json(propiedades);
   } catch (error) {
     console.error('Error al obtener los datos:', error);
@@ -603,7 +658,7 @@ app.get('/api/matches/status/partido/:id', cacheServer, async (req, res) => {
   }
 });
 
-app.get('/api/matches/formation/:id', cache('10 minutes'), async (req, res) => {
+app.get('/api/matches/formation/:id', cacheServerDos, async (req, res) => {
   const { id } = req.params;
   const url = `https://livescore.soccersapi.com/components/match/lineups?id=${id}`
 
@@ -719,6 +774,12 @@ app.get('/api/matches/formation/:id', cache('10 minutes'), async (req, res) => {
       }
     ]
 
+    //encabezados para el cache de la CDN
+    res.set({
+      "Cache-Control": "public, max-age=0, s-maxage=600",
+      "Content-Type": "text/html"
+    });
+    //convertir el objeto a JSON
     res.json(propiedades)
   } catch (error) {
     console.error('Error al obtener los datos:', error);
